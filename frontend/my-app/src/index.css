@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+/* Add this to your global CSS file */
+.yellow-glow {
+    /* Yellow glow effect for light mode */
+    --yellow-glow-color: rgba(255, 215, 0, 0.3);
+
+    /* Apply glow to the entire page */
+    background-color: #f8f9fa;
+    /* Light background */
+    box-shadow: 0 0 30px var(--yellow-glow-color) inset;
+}
+
+/* Make glow effect for elements in light mode */
+.yellow-glow button,
+.yellow-glow a,
+.yellow-glow nav,
+.yellow-glow .card,
+.yellow-glow .container {
+    box-shadow: 0 0 10px var(--yellow-glow-color);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Stronger glow on hover for interactive elements */
+.yellow-glow button:hover,
+.yellow-glow a:hover {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Add subtle text glow for headings */
+.yellow-glow h1,
+.yellow-glow h2,
+.yellow-glow h3 {
+    text-shadow: 0 0 5px var(--yellow-glow-color);
+}
+
+root {
+    --transition-duration: 0.3s;
+}
+
+/* Base styles */
+body {
+    margin: 0;
+    min-height: 100vh;
+    transition: background-color var(--transition-duration), color var(--transition-duration);
+}
+
+/* Light theme */
+:root[class='light'] {
+    --bg-primary: #ffffff;
+    --text-primary: #213547;
+    --nav-bg: linear-gradient(to right, #f8fafc, #e2e8f0, #cbd5e1);
+    --hover-color: #747bff;
+    color-scheme: light;
+}
+
+/* Dark theme */
+:root[class='dark'] {
+    --bg-primary: #242424;
+    --text-primary: rgba(255, 255, 255, 0.87);
+    --nav-bg: linear-gradient(to right, #000000, #1f2937, #4c1d95);
+    --hover-color: #646cff;
+    color-scheme: dark;
+}
+
+/* Theme transition effects */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Yellow glow effect for light theme */
+:root[class='light'] body {
+    background: radial-gradient(circle at center, #fff8e1 0%, var(--bg-primary) 100%);
+}
+
+/* Purple glow effect for dark theme */
+:root[class='dark'] body {
+    background: radial-gradient(circle at center, #2d1b4d 0%, var(--bg-primary) 100%);
+}
+
+/* Smooth transitions for all elements */
+* {
+    transition: background-color var(--transition-duration),
+        color var(--transition-duration),
+        border-color var(--transition-duration),
+        box-shadow var(--transition-duration);
+}
+
+@layer base {
+    :root {
+        --background: 210 40% 98%;
+        --foreground: 222.2 84% 4.9%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+
+        --primary: 221 83% 53%;
+        --primary-foreground: 210 40% 98%;
+
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+
+        --radius: 0.5rem;
+
+        --sidebar-background: 0 0% 98%;
+        --sidebar-foreground: 240 5.3% 26.1%;
+        --sidebar-primary: 240 5.9% 10%;
+        --sidebar-primary-foreground: 0 0% 98%;
+        --sidebar-accent: 240 4.8% 95.9%;
+        --sidebar-accent-foreground: 240 5.9% 10%;
+        --sidebar-border: 220 13% 91%;
+        --sidebar-ring: 217.2 91.2% 59.8%;
+    }
+
+    .dark {
+        --background: 222.2 84% 4.9%;
+        --foreground: 210 40% 98%;
+
+        --card: 222.2 84% 4.9%;
+        --card-foreground: 210 40% 98%;
+
+        --popover: 222.2 84% 4.9%;
+        --popover-foreground: 210 40% 98%;
+
+        --primary: 210 40% 98%;
+        --primary-foreground: 222.2 47.4% 11.2%;
+
+        --secondary: 217.2 32.6% 17.5%;
+        --secondary-foreground: 210 40% 98%;
+
+        --muted: 217.2 32.6% 17.5%;
+        --muted-foreground: 215 20.2% 65.1%;
+
+        --accent: 217.2 32.6% 17.5%;
+        --accent-foreground: 210 40% 98%;
+
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 217.2 32.6% 17.5%;
+        --input: 217.2 32.6% 17.5%;
+        --ring: 212.7 26.8% 83.9%;
+        --sidebar-background: 240 5.9% 10%;
+        --sidebar-foreground: 240 4.8% 95.9%;
+        --sidebar-primary: 224.3 76.3% 48%;
+        --sidebar-primary-foreground: 0 0% 100%;
+        --sidebar-accent: 240 3.7% 15.9%;
+        --sidebar-accent-foreground: 240 4.8% 95.9%;
+        --sidebar-border: 240 3.7% 15.9%;
+        --sidebar-ring: 217.2 91.2% 59.8%;
+    }
+}
+
+
+
+@layer utilities {
+    .glass-effect {
+        @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-lg;
+    }
+
+    .neo-glass {
+        @apply backdrop-blur-lg bg-white/5 border border-white/10 shadow-lg;
+    }
+
+    .text-gradient-blue {
+        @apply bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent;
+    }
+}

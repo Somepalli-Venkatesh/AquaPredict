@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Result</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-4">Prediction Result</h1>
+        <p class="text-xl mb-2">Result: <span class="font-semibold">{{ result }}</span></p>
+        <p class="text-xl mb-6">Confidence: <span class="font-semibold">{{ confidence | round(2) }}</span></p>
+        <div class="mb-6">
+            <img src="data:image/png;base64,{{ graph_data }}" alt="Prediction Graph" class="mx-auto">
+        </div>
+        <a href="{{ url_for('index') }}"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Try Another Image</a>
+    </div>
+</body>
+
+</html>
