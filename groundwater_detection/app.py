@@ -321,7 +321,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import matplotlib
-matplotlib.use('Agg')  # headless backend for matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
@@ -339,15 +339,21 @@ from email.mime.multipart import MIMEMultipart
 from tensorflow.keras.layers import InputLayer as _InputLayer
 class InputLayer(_InputLayer):
     def __init__(self, *args, batch_shape=None, **kwargs):
-        # Drop batch_shape, pass everything else through
         super().__init__(*args, **kwargs)
+
+# --- Register the DTypePolicy so mixed-precision layers can load ---
+from tensorflow.keras.mixed_precision import Policy
+# The H5 references class_name 'DTypePolicy', so map that name to Policy
+custom_objects = {
+    "InputLayer": InputLayer,
+    "DTypePolicy": Policy
+}
 
 # --- Flask app setup ---
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')
 
-# --- Upload config ---
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -356,49 +362,50 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 # --- Email Configuration ---
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "your_email@example.com")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "your_email_password")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "somepallivenkatesh38@gmail.com")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "kglt teqt sedp yqmc")
 EMAIL_USE_TLS = True
 
 # --- MongoDB Setup ---
-MONGO_URI = os.environ.get("MONGO_URI",
-    "mongodb+srv://21bq1a05o2:Venky630335@cluster0.7xwmt.mongodb.net/?retryWrites=true&w=majority")
+MONGO_URI = os.environ.get(
+    "MONGO_URI",
+    "mongodb+srv://21bq1a05o2:Venky630335@cluster0.7xwmt.mongodb.net/?retryWrites=true&w=majority"
+)
 client = MongoClient(MONGO_URI)
 db = client["ground_water"]
 users_collection = db["users"]
 contact_collection = db["contact_messages"]
 
-# --- Load the Trained Model with the hack ---
+# --- Load the Trained Model with custom_objects hack ---
 MODEL_PATH = "groundwater_detection_model.h5"
 model = tf.keras.models.load_model(
     MODEL_PATH,
     compile=False,
-    custom_objects={"InputLayer": InputLayer}
+    custom_objects=custom_objects
 )
 
-# --- Constants for prediction ---
+# --- Prediction settings ---
 IMG_HEIGHT, IMG_WIDTH = 224, 224
 CLASS_LABELS = ["groundwater_present", "no_groundwater"]
 
 # --- Helpers ---
 def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def preprocess_image(image_path):
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError("Could not read the image.")
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))
-    image = image.astype('float32') / 255.0
-    return np.expand_dims(image, axis=0)
+def preprocess_image(path):
+    img = cv2.imread(path)
+    if img is None:
+        raise ValueError("Invalid image file.")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (IMG_WIDTH, IMG_HEIGHT))
+    img = img.astype('float32') / 255.0
+    return np.expand_dims(img, 0)
 
-def generate_graph(prediction, class_labels):
+def generate_graph(pred, labels):
     fig, ax = plt.subplots(figsize=(6, 4))
-    probs = prediction[0]
-    ax.bar(class_labels, probs)  # default colors
-    ax.set_ylim([0, 1])
+    probs = pred[0]
+    ax.bar(labels, probs)
+    ax.set_ylim(0, 1)
     ax.set_ylabel("Probability")
     ax.set_title("Prediction Confidence")
     buf = BytesIO()
@@ -408,7 +415,6 @@ def generate_graph(prediction, class_labels):
     return base64.b64encode(buf.getvalue()).decode('utf8')
 
 # --- Routes ---
-
 @app.route('/download', methods=['GET'])
 def download_file():
     file_url = "https://drive.google.com/uc?export=download&id=1_dRddhIPIOvJ_Y9fy9jQfXESBHwWwDIw"
@@ -416,44 +422,40 @@ def download_file():
         r = requests.get(file_url, stream=True)
         r.raise_for_status()
     except requests.RequestException as e:
-        return jsonify({'error': 'Error fetching file: ' + str(e)}), 500
+        return jsonify({'error': f'Error fetching file: {e}'}), 500
 
     headers = {
         "Content-Disposition": 'attachment; filename="Document.pdf"',
         "Content-Type": r.headers.get("Content-Type", "application/octet-stream")
     }
-    return Response(r.iter_content(chunk_size=8192), headers=headers)
+    return Response(r.iter_content(8192), headers=headers)
 
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json() or {}
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
-    if not username or not email or not password:
-        return jsonify({"error": "Username, email, and password are required."}), 400
-    if users_collection.find_one({"username": username}):
-        return jsonify({"error": "Username already taken."}), 400
-    if users_collection.find_one({"email": email}):
-        return jsonify({"error": "Email already registered."}), 400
-    pw_hash = generate_password_hash(password)
+    u, e, p = data.get("username"), data.get("email"), data.get("password")
+    if not u or not e or not p:
+        return jsonify({"error": "Username, email, and password required."}), 400
+    if users_collection.find_one({"username": u}):
+        return jsonify({"error": "Username taken."}), 400
+    if users_collection.find_one({"email": e}):
+        return jsonify({"error": "Email registered."}), 400
     users_collection.insert_one({
-        "username": username,
-        "email": email,
-        "password_hash": pw_hash
+        "username": u,
+        "email": e,
+        "password_hash": generate_password_hash(p)
     })
-    return jsonify({"message": "Account created! Please login."}), 201
+    return jsonify({"message": "Account created."}), 201
 
-@app.route("/api/login", methods=["POST"])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json() or {}
-    username = data.get("username")
-    password = data.get("password")
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
-    user = users_collection.find_one({"username": username})
-    if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid username or password"}), 401
+    u, p = data.get("username"), data.get("password")
+    if not u or not p:
+        return jsonify({"error": "Username and password required."}), 400
+    user = users_collection.find_one({"username": u})
+    if not user or not check_password_hash(user["password_hash"], p):
+        return jsonify({"error": "Invalid credentials."}), 401
     return jsonify({"username": user["username"]})
 
 @app.route('/api/predict', methods=['POST'])
@@ -466,72 +468,60 @@ def predict():
     if not allowed_file(file.filename):
         return jsonify({'error': 'File type not allowed.'}), 400
 
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
+    fname = secure_filename(file.filename)
+    fpath = os.path.join(app.config['UPLOAD_FOLDER'], fname)
+    file.save(fpath)
 
     try:
-        img = preprocess_image(filepath)
+        img = preprocess_image(fpath)
     except Exception as e:
-        os.remove(filepath)
-        return jsonify({'error': f'Error processing image: {e}'}), 400
+        os.remove(fpath)
+        return jsonify({'error': f'Image processing error: {e}'}), 400
 
     preds = model.predict(img)
     probs = preds[0].tolist()
     idx = int(np.argmax(preds, axis=1)[0])
     result = CLASS_LABELS[idx]
     confidence = float(np.max(preds))
-    graph_data = generate_graph(preds, CLASS_LABELS)
+    graph = generate_graph(preds, CLASS_LABELS)
 
-    os.remove(filepath)
+    os.remove(fpath)
     return jsonify({
         'result': result,
         'confidence': round(confidence, 2),
         'probabilities': probs,
-        'graph_data': graph_data
+        'graph_data': graph
     })
 
 @app.route('/api/contact', methods=['POST'])
 def contact():
     data = request.get_json() or {}
-    name = data.get("name")
-    email = data.get("email")
-    subject = data.get("subject", "")
-    message = data.get("message")
-    if not name or not email or not message:
-        return jsonify({"error": "Name, email, and message are required."}), 400
+    n, e, s, m = data.get("name"), data.get("email"), data.get("subject", ""), data.get("message")
+    if not n or not e or not m:
+        return jsonify({"error": "Name, email, and message required."}), 400
 
     contact_collection.insert_one({
-        "name": name,
-        "email": email,
-        "subject": subject,
-        "message": message
+        "name": n, "email": e, "subject": s, "message": m
     })
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_HOST_USER
-    msg["To"] = email
-    msg["Subject"] = f"Thank you for contacting us: {subject or 'No Subject'}"
-    body = (
-        f"Hi {name},\n\n"
-        f"Thank you for reaching out. We received your message:\n\n"
-        f"{message}\n\n"
-        "We will get back to you shortly.\n\n"
-        "Regards,\nGroundwater Team"
-    )
+    msg["To"] = e
+    msg["Subject"] = f"Thanks for contacting us: {s or 'No Subject'}"
+    body = f"Hi {n},\n\nThanks for your message:\n\n{m}\n\nWe’ll be in touch soon.\n\n– Groundwater Team"
     msg.attach(MIMEText(body, "plain"))
 
     try:
-        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+        srv = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
         if EMAIL_USE_TLS:
-            server.starttls()
-        server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
-        server.sendmail(EMAIL_HOST_USER, email, msg.as_string())
-        server.quit()
-    except Exception as e:
-        return jsonify({"error": f"Saved message but email failed: {e}"}), 500
+            srv.starttls()
+        srv.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+        srv.sendmail(EMAIL_HOST_USER, e, msg.as_string())
+        srv.quit()
+    except Exception as ex:
+        return jsonify({"error": f"Saved but email failed: {ex}"}), 500
 
-    return jsonify({"message": "Your message has been sent successfully!"}), 200
+    return jsonify({"message": "Your message has been sent!"}), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
