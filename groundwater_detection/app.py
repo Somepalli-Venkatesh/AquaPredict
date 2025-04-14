@@ -321,7 +321,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import matplotlib
-matplotlib.use('Agg')  # headless backend
+matplotlib.use('Agg')  # headless backend for matplotlib
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
@@ -335,22 +335,22 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- Define your model architecture in code ---
+# --- Define your model architecture to match training script ---
 def build_model():
-    inputs = tf.keras.Input(shape=(224, 224, 3), name="input_layer")
-    
-    # --- Example architecture; replace with your exact layers ---
-    x = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", name="conv2d_1")(inputs)
-    x = tf.keras.layers.MaxPooling2D((2, 2), name="pool_1")(x)
-    
-    x = tf.keras.layers.Conv2D(64, (3, 3), activation="relu", name="conv2d_2")(x)
-    x = tf.keras.layers.MaxPooling2D((2, 2), name="pool_2")(x)
-    
-    x = tf.keras.layers.Flatten(name="flatten")(x)
-    x = tf.keras.layers.Dense(128, activation="relu", name="dense_1")(x)
-    outputs = tf.keras.layers.Dense(2, activation="softmax", name="predictions")(x)
-    
-    return tf.keras.Model(inputs=inputs, outputs=outputs, name="groundwater_model")
+    model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu',
+                               input_shape=(224, 224, 3), name='conv2d_1'),
+        tf.keras.layers.MaxPooling2D((2, 2), name='pool_1'),
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu', name='conv2d_2'),
+        tf.keras.layers.MaxPooling2D((2, 2), name='pool_2'),
+        tf.keras.layers.Conv2D(128, (3, 3), activation='relu', name='conv2d_3'),
+        tf.keras.layers.MaxPooling2D((2, 2), name='pool_3'),
+        tf.keras.layers.Flatten(name='flatten'),
+        tf.keras.layers.Dense(256, activation='relu', name='dense_1'),
+        tf.keras.layers.Dropout(0.5, name='dropout'),
+        tf.keras.layers.Dense(2, activation='softmax', name='predictions')
+    ], name='groundwater_model')
+    return model
 
 # --- Flask app setup ---
 app = Flask(__name__)
@@ -379,7 +379,7 @@ db = client["ground_water"]
 users_collection = db["users"]
 contact_collection = db["contact_messages"]
 
-# --- Load the model and weights ---
+# --- Load the model weights into the code-defined architecture ---
 MODEL_PATH = "groundwater_detection_model.h5"
 model = build_model()
 model.load_weights(MODEL_PATH)
