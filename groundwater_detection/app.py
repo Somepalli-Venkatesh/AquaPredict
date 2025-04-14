@@ -363,7 +363,9 @@ contact_collection = db["contact_messages"]
 
 # --- Load the Trained Model ---
 MODEL_PATH = "groundwater_detection_model.h5"
-model = tf.keras.models.load_model(MODEL_PATH)
+# model = tf.keras.models.load_model(MODEL_PATH)
+model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+
 
 # Image dimensions (must match your training settings)
 IMG_HEIGHT, IMG_WIDTH = 224, 224
