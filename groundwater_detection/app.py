@@ -321,7 +321,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # headless backend
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
@@ -335,19 +335,22 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- Workaround for InputLayer batch_shape error ---
-from tensorflow.keras.layers import InputLayer as _InputLayer
-class InputLayer(_InputLayer):
-    def __init__(self, *args, batch_shape=None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-# --- Register the DTypePolicy so mixed-precision layers can load ---
-from tensorflow.keras.mixed_precision import Policy
-# The H5 references class_name 'DTypePolicy', so map that name to Policy
-custom_objects = {
-    "InputLayer": InputLayer,
-    "DTypePolicy": Policy
-}
+# --- Define your model architecture in code ---
+def build_model():
+    inputs = tf.keras.Input(shape=(224, 224, 3), name="input_layer")
+    
+    # --- Example architecture; replace with your exact layers ---
+    x = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", name="conv2d_1")(inputs)
+    x = tf.keras.layers.MaxPooling2D((2, 2), name="pool_1")(x)
+    
+    x = tf.keras.layers.Conv2D(64, (3, 3), activation="relu", name="conv2d_2")(x)
+    x = tf.keras.layers.MaxPooling2D((2, 2), name="pool_2")(x)
+    
+    x = tf.keras.layers.Flatten(name="flatten")(x)
+    x = tf.keras.layers.Dense(128, activation="relu", name="dense_1")(x)
+    outputs = tf.keras.layers.Dense(2, activation="softmax", name="predictions")(x)
+    
+    return tf.keras.Model(inputs=inputs, outputs=outputs, name="groundwater_model")
 
 # --- Flask app setup ---
 app = Flask(__name__)
@@ -376,13 +379,10 @@ db = client["ground_water"]
 users_collection = db["users"]
 contact_collection = db["contact_messages"]
 
-# --- Load the Trained Model with custom_objects hack ---
+# --- Load the model and weights ---
 MODEL_PATH = "groundwater_detection_model.h5"
-model = tf.keras.models.load_model(
-    MODEL_PATH,
-    compile=False,
-    custom_objects=custom_objects
-)
+model = build_model()
+model.load_weights(MODEL_PATH)
 
 # --- Prediction settings ---
 IMG_HEIGHT, IMG_WIDTH = 224, 224
